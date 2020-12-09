@@ -7,6 +7,8 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(modelr)
+library(p8105.datasets)
 ```
 
 ### Problem 2
@@ -19,7 +21,8 @@ bwt_df =
   mutate(
     mrace = as.factor(mrace),
     frace = as.factor(frace),
-    babysex = as.factor(babysex)
+    babysex = as.factor(babysex),
+    malform = as.factor(malform)
   )
 
 sapply(bwt_df, function(x) sum(is.na(x))) #looks like there are no missing values, let's build a model
@@ -35,7 +38,8 @@ mg_model %>% broom::tidy()
 bwt_df %>%
   modelr::add_predictions(mg_model) %>%
   modelr::add_residuals(mg_model) %>%
-  ggplot(aes(x = resid, y = pred))+geom_point()+ #look back at regression notes :D
+  ggplot(aes(x = resid, y = pred))+geom_point()+#look back at regression notes :D
+  geom_smooth(se = FALSE, method = "lm", color = "green")+
   theme_bw()+
   labs(
     x = "Residuals",
@@ -46,7 +50,7 @@ bwt_df %>%
 
 
 ```
-#### Model comparisons
+#### Model comparisons, cross-validation using modelr
 
 
 ```{r regression}
@@ -69,8 +73,50 @@ saturated %>% broom::tidy()
 
 ```
 
+```{r}
+
+cv_df =
+  crossv_mc(bwt_df, 100)
+
+cv_df = 
+cv_df %>%
+  mutate(
+    mg_model = map(train, ~lm(bwt ~ gaweeks+mrace+ppbmi, data = .x)),
+    main_effect = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    saturated = map(train, ~lm(bwt ~ bhead*blength*babysex, data = .x))
+  ) %>%
+  mutate(
+    rmse_mg_model = map2_dbl(mg_model, test, ~rmse(model = .x, data = .y)),
+    rmse_main_effect = map2_dbl(main_effect, test, ~rmse(model = .x, data = .y)),
+    rmse_saturated = map2_dbl(saturated, test, ~rmse(model = .x, data = .y))
+  )
+
+```
+
+Look at distribution of RMSEs
+
+```{r}
+cv_df %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") %>% 
+  mutate(model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) +
+  geom_boxplot(aes(fill=model))+
+  theme_bw()
+
+```
+
 
 ### Problem 3
 
 Wow this looks like a fun one
+
+```{r}
+
+
+```
 
