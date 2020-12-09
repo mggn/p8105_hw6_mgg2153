@@ -115,6 +115,7 @@ saturated %>% broom::tidy()
 
 ```
 
+**cross validation step**
 
 ```{r}
 
@@ -136,7 +137,7 @@ cv_df %>%
 
 ```
 
-Look at distribution of RMSEs
+Look at distribution of RMSEs to see which model is best
 
 ```{r}
 cv_df %>% 
@@ -149,14 +150,21 @@ cv_df %>%
   mutate(model = fct_inorder(model)) %>% 
   ggplot(aes(x = model, y = rmse)) +
   geom_boxplot(aes(fill=model))+
-  theme_bw()
+  theme_bw()+
+  labs(
+    x = "Model",
+    y = "RMSE",
+    title = "RMSE distribution across 3 models"
+  )+
+  theme(legend.position = "none")
 
 ```
 
+Looks like the clear winner is the saturated model(we want the smallest RMSE), with the three-way interaction!
 
 ### Problem 3
 
-Wow this looks like a fun one
+Let's load in the noaa data
 
 ```{r load_noaa}
 weather_df = 
@@ -175,7 +183,10 @@ set.seed(1)
 
 ```
 
-For the log betas
+Lets use bootstrap and generate models for tmax = tmin, then let's pull the estimates of the intercepts (b0) and the slopes (b1) and create the log of the product of these two.
+Note: R uses log to mean natural log, and log10 for log base 10. Since this is a biostats class, let's use log aka natural log :-)
+
+Below is the process to summarize the 95% confidence interval
 
 ```{r}
 weather_df %>%
@@ -196,18 +207,14 @@ weather_df %>%
     log_b_hats = log(intercept*tmin)
   )%>%
   summarize(
-    ll_ci = quantile(log_b_hats, c(.025)),
-    ul_ci = quantile(log_b_hats, c(.975))
+    lower_limit = quantile(log_b_hats, c(.025)),
+    upper_limit = quantile(log_b_hats, c(.975))
   )%>%
   knitr::kable()
 ```
-```{r}
 
 
-```
-
-
-For the r squared
+And now we follow a similar process for the r hat squared
 
 ```{r}
 weather_df %>%
@@ -220,13 +227,13 @@ weather_df %>%
   unnest(results) %>%
   janitor::clean_names()%>%
   summarize(
-    ll_ci = quantile(r_squared, c(.025)),
-    ul_ci = quantile(r_squared, c(.975))
+    lower_limit = quantile(r_squared, c(.025)),
+    upper_limit = quantile(r_squared, c(.975))
   )%>% knitr::kable()
 
 ```
 
-Plots!
+*and last but not least...* PLOTS of the distributions of the estimates!
 
 ```{r}
 weather_df %>%
@@ -246,7 +253,12 @@ weather_df %>%
   mutate(
     log_b_hats = log(intercept*tmin)
   )%>%
-  ggplot(aes(x = log_b_hats))+geom_density()+theme_bw()
+  ggplot(aes(x = log_b_hats))+geom_density()+theme_bw()+
+  labs(
+    x = "log(b0*b1)",
+    y = "Density",
+    title = "Distribution of [simulated] log(b0*b1) values"
+  )
 
 ```
 
@@ -260,6 +272,14 @@ weather_df %>%
   select(-strap, -models) %>%
   unnest(results) %>%
   janitor::clean_names()%>%
-  ggplot(aes(x = r_squared))+geom_density()+theme_bw()
+  ggplot(aes(x = r_squared))+geom_density()+theme_bw()+
+  labs(
+    x = "R (hat) squared",
+    y = "Density",
+    title = "Distribution of [simulated] R (hat) squared values"
+  )
+
 
 ```
+
+Both plots look like a good old normal distribution :o)
