@@ -155,7 +155,11 @@ weather_df %>%
   summarize(
     ll_ci = quantile(log_b_hats, c(.025)),
     ul_ci = quantile(log_b_hats, c(.975))
-  )
+  )%>%
+  knitr::kable()
+```
+```{r}
+
 
 ```
 
@@ -172,11 +176,47 @@ weather_df %>%
   select(-strap, -models) %>%
   unnest(results) %>%
   janitor::clean_names()%>%
- 
   summarize(
-    ll_ci = quantile(log_b_hats, c(.025)),
-    ul_ci = quantile(log_b_hats, c(.975))
-  )
+    ll_ci = quantile(r_squared, c(.025)),
+    ul_ci = quantile(r_squared, c(.975))
+  )%>% knitr::kable()
 
 ```
 
+Plots!
+
+```{r}
+weather_df %>%
+  bootstrap(n = 5000)%>%
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x)),
+    results = map(models, broom::tidy)
+  ) %>%
+  select(-strap, -models) %>%
+  unnest(results) %>%
+  select(.id, term, estimate)%>%
+  pivot_wider(
+    names_from = "term",
+    values_from = "estimate"
+  )%>%
+  janitor::clean_names()%>%
+  mutate(
+    log_b_hats = log(intercept*tmin)
+  )%>%
+  ggplot(aes(x = log_b_hats))+geom_density()+theme_bw()
+
+```
+
+```{r}
+weather_df %>%
+  bootstrap(n = 5000)%>%
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x)),
+    results = map(models, broom::glance)
+  ) %>%
+  select(-strap, -models) %>%
+  unnest(results) %>%
+  janitor::clean_names()%>%
+  ggplot(aes(x = r_squared))+geom_density()+theme_bw()
+
+```
