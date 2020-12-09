@@ -132,6 +132,8 @@ set.seed(1)
 
 ```
 
+For the log betas
+
 ```{r}
 weather_df %>%
   bootstrap(n = 5000)%>%
@@ -141,14 +143,40 @@ weather_df %>%
   ) %>%
   select(-strap, -models) %>%
   unnest(results) %>%
-  group_by(term) %>%
-  janitor::clean_names()%>%
+  select(.id, term, estimate)%>%
   pivot_wider(
     names_from = "term",
     values_from = "estimate"
   )%>%
-  janitor::clean_names()
+  janitor::clean_names()%>%
+  mutate(
+    log_b_hats = log(intercept*tmin)
+  )%>%
+  summarize(
+    ll_ci = quantile(log_b_hats, c(.025)),
+    ul_ci = quantile(log_b_hats, c(.975))
+  )
+
 ```
 
 
+For the r squared
+
+```{r}
+weather_df %>%
+  bootstrap(n = 5000)%>%
+  mutate(
+    models = map(strap, ~lm(tmax ~ tmin, data = .x)),
+    results = map(models, broom::glance)
+  ) %>%
+  select(-strap, -models) %>%
+  unnest(results) %>%
+  janitor::clean_names()%>%
+ 
+  summarize(
+    ll_ci = quantile(log_b_hats, c(.025)),
+    ul_ci = quantile(log_b_hats, c(.975))
+  )
+
+```
 
