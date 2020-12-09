@@ -51,7 +51,7 @@ We are looking to construct a regression model to estimate birthweight. Looking 
 
 As part of my thesis, I was looking for birth outcomes after maternal exposure to stress from natural disaster. The process for model building included a theoretical framework as presented by the following DAG, and influenced by other literature relating prenatal stress to birth outcomes, namely, birthweight
 
-<img src="images/Sandy_DAG.png" style="width:75%">
+<img src="images/Sandy_DAG.png" style="width:85%">
 
 
 Of course, the data we have here are different: we are looking at factors that influence birth outcomes NOT in the context of natural disaster!
