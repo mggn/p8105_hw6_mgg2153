@@ -1,0 +1,76 @@
+---
+title: "p8105_hw6_mgg2153"
+author: "mggn"
+date: "12/8/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+### Problem 2
+
+```{r load_data}
+
+bwt_df = 
+  read_csv("./data/birthweight.csv") %>%
+  janitor::clean_names() %>%
+  mutate(
+    mrace = as.factor(mrace),
+    frace = as.factor(frace),
+    babysex = as.factor(babysex)
+  )
+
+sapply(bwt_df, function(x) sum(is.na(x))) #looks like there are no missing values, let's build a model
+```
+```{r my_model}
+
+#model based on information from my thesis, give justification later :D
+
+mg_model = lm(bwt ~ gaweeks+mrace+ppbmi, data = bwt_df)
+
+mg_model %>% broom::tidy()
+
+bwt_df %>%
+  modelr::add_predictions(mg_model) %>%
+  modelr::add_residuals(mg_model) %>%
+  ggplot(aes(x = resid, y = pred))+geom_point()+ #look back at regression notes :D
+  theme_bw()+
+  labs(
+    x = "Residuals",
+    y = "Predicted values",
+    title = "Residuals vs. predicted values", #yhat?
+    caption = "Regression diagnostics"
+  )
+
+
+```
+#### Model comparisons
+
+
+```{r regression}
+
+#main effects model
+
+main_effect = lm(bwt ~ blength + gaweeks, data = bwt_df)
+
+main_effect %>% broom::tidy()
+
+
+```
+
+```{r}
+
+#head circumference, length, sex, and all interactions
+saturated = lm(bwt ~ bhead*blength*babysex, data = bwt_df)
+
+saturated %>% broom::tidy()
+
+```
+
+
+### Problem 3
+
+Wow this looks like a fun one
+
