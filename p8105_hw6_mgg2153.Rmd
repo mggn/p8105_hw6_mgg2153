@@ -4,14 +4,22 @@ author: "mggn"
 date: "12/8/2020"
 output: github_document
 ---
+### Final data science homework of the semester!
+
+Thank you, teaching team, for a great class. 
+
+Ok, let's get started:
 
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(modelr)
 library(p8105.datasets)
 ```
+Problem 1 was completed in class, so I'll jump right in to problem 2:
 
 ### Problem 2
+
+Using the birthweight data set, we will (1) import the data (2) tidy the data and (3) check for missing using a neat little function I found by googling
 
 ```{r load_data}
 
@@ -25,20 +33,49 @@ bwt_df =
     malform = as.factor(malform)
   )
 
-sapply(bwt_df, function(x) sum(is.na(x))) #looks like there are no missing values, let's build a model
+sapply(bwt_df, function(x) sum(is.na(x))) #check missing
 ```
+From the output, we can see that there are no missing values! How nice.
+
+#### Building a model
+
+We are looking to construct a regression model to estimate birthweight. Looking at the codebook, my variables of interest are:
+
+- gestational age (weeks)  
+- maternal race   
+- pre-pregnancy BMI  
+- SES (income used as proxy here)  
+- maternal age at delivery
+
+**why?**
+
+As part of my thesis, I was looking for birth outcomes after maternal exposure to stress from natural disaster. The process for model building included a theoretical framework as presented by the following DAG, and influenced by other literature relating prenatal stress to birth outcomes, namely, birthweight
+
+<img src="images/Sandy_DAG.png" style="width:75%">
+
+
+Of course, the data we have here are different: we are looking at factors that influence birth outcomes NOT in the context of natural disaster!
+Nevertheless, the DAG and the literature point to the variables I listed above as being influential in determining birthweight. Thus, I included them in my regression model below. Additionally, I generated a plot of the residuals generated from my model vs. the predicted values for the regression diagnostics plot
+
 ```{r my_model}
 
-#model based on information from my thesis, give justification later :D
+mg_model = lm(bwt ~ gaweeks+mrace+ppbmi+fincome+momage, data = bwt_df)
 
-mg_model = lm(bwt ~ gaweeks+mrace+ppbmi, data = bwt_df)
+```
 
+Model estimates are summarized below:
+
+```{r}
 mg_model %>% broom::tidy()
+```
 
+And here is the plot that I mentioned above!
+
+```{r}
 bwt_df %>%
   modelr::add_predictions(mg_model) %>%
   modelr::add_residuals(mg_model) %>%
-  ggplot(aes(x = resid, y = pred))+geom_point()+#look back at regression notes :D
+  ggplot(aes(x = pred, y = resid))+geom_point()+#look back at regression notes :D
   geom_smooth(se = FALSE, method = "lm", color = "green")+
   theme_bw()+
   labs(
@@ -50,9 +87,13 @@ bwt_df %>%
 
 
 ```
+Looking at the plot, it looks like the residuals are symmetrical around the line at y = 0. This kind of plot can be used to assess whether the residuals from your regression are normally distributed. Since the points are symmetrical, aka evenly distributed, it seems like the residuals are evenly distributed and thus the normal distribution of residuals assumption is satisfied for linear regression.
+
 #### Model comparisons, cross-validation using modelr
 
+Now we will cross-validate three models; the two below with the model I constructed above
 
+(1)
 ```{r regression}
 
 #main effects model
@@ -64,6 +105,7 @@ main_effect %>% broom::tidy()
 
 ```
 
+(2)
 ```{r}
 
 #head circumference, length, sex, and all interactions
@@ -73,6 +115,7 @@ saturated %>% broom::tidy()
 
 ```
 
+
 ```{r}
 
 cv_df =
@@ -81,7 +124,7 @@ cv_df =
 cv_df = 
 cv_df %>%
   mutate(
-    mg_model = map(train, ~lm(bwt ~ gaweeks+mrace+ppbmi, data = .x)),
+    mg_model = map(train, ~lm(bwt ~ gaweeks+mrace+ppbmi+fincome+momage, data = .x)),
     main_effect = map(train, ~lm(bwt ~ blength + gaweeks, data = .x)),
     saturated = map(train, ~lm(bwt ~ bhead*blength*babysex, data = .x))
   ) %>%
